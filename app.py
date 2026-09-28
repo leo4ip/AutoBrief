@@ -43,25 +43,42 @@ if shared_data:
             st.warning("Опишите задачу подробнее.")
         else:
             with st.spinner("AI структурирует требования..."):
-                prompt = f"Ты — опытный Project Manager. Преврати этот сырой текст в профессиональное ТЗ. Текст: '{client_input}'. Формат: Цель, Требования, Стек, Сроки/бюджет, Уточняющие вопросы. Только Markdown."
+                # ИСПРАВЛЕНИЕ: используем тройные кавычки и экранирование
+                safe_input = client_input.replace('"', '\\"').replace('\n', ' ')
+                prompt = f"""Ты — опытный Project Manager. Преврати этот сырой текст в профессиональное ТЗ.
+
+Текст заказчика:
+"""{safe_input}"""
+
+Формат ответа (Markdown):
+### 🎯 Цель проекта
+### 📋 Основные требования (списком)
+### 🛠 Технический стек / Интеграции
+### ⏱ Сроки и бюджет
+### ❓ Уточняющие вопросы (2-3 вопроса)
+
+Отвечай только на русском языке."""
                 
-                # ИСПРАВЛЕНИЕ: самая стабильная модель Groq
-                response = client.chat.completions.create(
-                    messages=[{"role": "user", "content": prompt}],
-                    model="llama3-70b-8192", 
-                    temperature=0.2
-                )
-                tz_text = response.choices[0].message.content
-                
-                if not is_pro:
-                    viral_footer = f"\n\n---\n💡 *Сгенерировано через [AutoBrief AI]({APP_URL}). Создайте свою ссылку бесплатно.*"
-                    tz_text += viral_footer
-                    st.info("🔥 Хотите убрать водяной знак и добавить свой логотип?")
-                    if st.button("💳 Купить Pro-доступ"):
-                        st.markdown(f"👉 [Оплатить через RollyPay]({ROLLYPAY_LINK})")
-                        st.success("После оплаты вы увидите код. Введите его выше и сгенерируйте ТЗ заново.")
-                
-                st.markdown(tz_text)
+                try:
+                    response = client.chat.completions.create(
+                        messages=[{"role": "user", "content": prompt}],
+                        model="llama3-70b-8192",
+                        temperature=0.2
+                    )
+                    tz_text = response.choices[0].message.content
+                    
+                    if not is_pro:
+                        viral_footer = f"\n\n---\n💡 *Сгенерировано через [AutoBrief AI]({APP_URL}). Создайте свою ссылку бесплатно.*"
+                        tz_text += viral_footer
+                        st.info("🔥 Хотите убрать водяной знак и добавить свой логотип?")
+                        if st.button("💳 Купить Pro-доступ"):
+                            st.markdown(f"👉 [Оплатить через RollyPay]({ROLLYPAY_LINK})")
+                            st.success("После оплаты вы увидите код. Введите его выше и сгенерируйте ТЗ заново.")
+                    
+                    st.markdown(tz_text)
+                except Exception as e:
+                    st.error(f"Ошибка AI: {str(e)}")
+                    st.info("Проверьте, что ключ Groq API в Secrets введен правильно (без пробелов).")
 else:
     st.title("⚡ AutoBrief AI")
     st.markdown("Отправьте клиенту умную ссылку для сбора требований.")
