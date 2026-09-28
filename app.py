@@ -59,7 +59,7 @@ if shared_data:
                 try:
                     response = client.chat.completions.create(
                         messages=[{"role": "user", "content": prompt}],
-                           model="llama-3.3-70b-versatile", # АКТУАЛЬНАЯ МОДЕЛЬ GROQ
+                           model="qwen/qwen3.8-27b", # АКТУАЛЬНАЯ МОДЕЛЬ GROQ
                         temperature=0.2
                     )
                     tz_text = response.choices[0].message.content
