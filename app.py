@@ -13,12 +13,12 @@ st.set_page_config(page_title="AutoBrief", page_icon="📝", layout="centered")
 
 def encode_data(name, project_type):
     data = json.dumps({"name": name, "type": project_type}, ensure_ascii=False)
-    return base64.urlsafe_b64encode(data.encode('utf-8')).decode('utf-8')
+    return base64.urlsafe_b64encode(data.encode("utf-8")).decode("utf-8")
 
 def decode_data(encoded_str):
     try:
         encoded_str += "=" * ((4 - len(encoded_str) % 4) % 4)
-        data = base64.urlsafe_b64decode(encoded_str.encode('utf-8')).decode('utf-8')
+        data = base64.urlsafe_b64decode(encoded_str.encode("utf-8")).decode("utf-8")
         return json.loads(data)
     except Exception:
         return None
@@ -31,34 +31,31 @@ if isinstance(share_code, list):
 shared_data = decode_data(share_code)
 
 if shared_data:
-    st.title(f"📝 Бриф: {shared_data['type']}")
-    st.markdown(f"Заполните бриф для **{shared_data['name']}**.")
+    st.title("📝 Бриф: " + shared_data["type"])
+    st.markdown("Заполните бриф для **" + shared_data["name"] + "**.")
     client_input = st.text_area("Опишите задачу своими словами:", height=200, placeholder="Например: Нужен лендинг, цвета зеленые, форма в Telegram, бюджет 30к.")
     st.markdown("---")
     user_code = st.text_input("Код доступа (если есть)", key="pro_code")
     is_pro = (user_code.strip().upper() == SECRET_PRO_CODE)
-    
+
     if st.button("🚀 Сгенерировать ТЗ"):
         if len(client_input) < 10:
             st.warning("Опишите задачу подробнее.")
         else:
             with st.spinner("AI структурирует требования..."):
-                # ИСПРАВЛЕНИЕ: используем тройные кавычки и экранирование
-                safe_input = client_input.replace('"', '\\"').replace('\n', ' ')
-                prompt = f"""Ты — опытный Project Manager. Преврати этот сырой текст в профессиональное ТЗ.
+                safe_input = client_input.replace("\n", " ")
+                prompt = (
+                    "Ты — опытный Project Manager. Преврати сырой текст заказчика в профессиональное ТЗ на русском языке.\n\n"
+                    "Текст заказчика: " + safe_input + "\n\n"
+                    "Формат ответа (Markdown):\n"
+                    "### 🎯 Цель проекта\n"
+                    "### 📋 Основные требования (списком)\n"
+                    "### 🛠 Технический стек / Интеграции\n"
+                    "### ⏱ Сроки и бюджет\n"
+                    "### ❓ Уточняющие вопросы (2-3 вопроса)\n\n"
+                    "Отвечай только на русском языке."
+                )
 
-Текст заказчика:
-"""{safe_input}"""
-
-Формат ответа (Markdown):
-### 🎯 Цель проекта
-### 📋 Основные требования (списком)
-### 🛠 Технический стек / Интеграции
-### ⏱ Сроки и бюджет
-### ❓ Уточняющие вопросы (2-3 вопроса)
-
-Отвечай только на русском языке."""
-                
                 try:
                     response = client.chat.completions.create(
                         messages=[{"role": "user", "content": prompt}],
@@ -66,19 +63,19 @@ if shared_data:
                         temperature=0.2
                     )
                     tz_text = response.choices[0].message.content
-                    
+
                     if not is_pro:
-                        viral_footer = f"\n\n---\n💡 *Сгенерировано через [AutoBrief AI]({APP_URL}). Создайте свою ссылку бесплатно.*"
+                        viral_footer = "\n\n---\n💡 *Сгенерировано через [AutoBrief AI](" + APP_URL + "). Создайте свою ссылку бесплатно.*"
                         tz_text += viral_footer
                         st.info("🔥 Хотите убрать водяной знак и добавить свой логотип?")
                         if st.button("💳 Купить Pro-доступ"):
-                            st.markdown(f"👉 [Оплатить через RollyPay]({ROLLYPAY_LINK})")
+                            st.markdown("👉 [Оплатить через RollyPay](" + ROLLYPAY_LINK + ")")
                             st.success("После оплаты вы увидите код. Введите его выше и сгенерируйте ТЗ заново.")
-                    
+
                     st.markdown(tz_text)
                 except Exception as e:
-                    st.error(f"Ошибка AI: {str(e)}")
-                    st.info("Проверьте, что ключ Groq API в Secrets введен правильно (без пробелов).")
+                    st.error("Ошибка AI: " + str(e))
+                    st.info("Проверьте ключ Groq API в Settings → Secrets.")
 else:
     st.title("⚡ AutoBrief AI")
     st.markdown("Отправьте клиенту умную ссылку для сбора требований.")
@@ -87,9 +84,9 @@ else:
         my_name = st.text_input("Ваше имя или студия", "Студия")
     with col2:
         project_type = st.text_input("Тип проекта", "Разработка сайта")
-        
+
     if st.button("🔗 Сгенерировать ссылку"):
         share_code = encode_data(my_name, project_type)
-        share_url = f"{APP_URL}/?share={share_code}"
+        share_url = APP_URL + "/?share=" + share_code
         st.success("Ссылка готова! Скопируйте её целиком.")
         st.code(share_url, language="text")
