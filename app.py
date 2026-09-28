@@ -12,25 +12,32 @@ client = Groq(api_key=GROQ_API_KEY)
 st.set_page_config(page_title="AutoBrief", page_icon="📝", layout="centered")
 
 def encode_data(name, project_type):
-    data = json.dumps({"name": name, "type": project_type})
-    return base64.urlsafe_b64encode(data.encode()).decode()
+    data = json.dumps({"name": name, "type": project_type}, ensure_ascii=False)
+    return base64.urlsafe_b64encode(data.encode('utf-8')).decode('utf-8')
 
 def decode_data(encoded_str):
     try:
-        data = base64.urlsafe_b64decode(encoded_str.encode()).decode()
+        # Добавляем паддинг, если ссылка обрезалась мессенджером
+        encoded_str += "=" * ((4 - len(encoded_str) % 4) % 4)
+        data = base64.urlsafe_b64decode(encoded_str.encode('utf-8')).decode('utf-8')
         return json.loads(data)
-    except:
+    except Exception:
         return None
 
-query_params = st.query_params
-shared_data = decode_data(query_params.get("share", ""))
+# Пуленепробиваемое чтение параметров ссылки
+params = st.query_params
+share_code = params.get("share", "")
+if isinstance(share_code, list):
+    share_code = share_code[0]
+
+shared_data = decode_data(share_code)
 
 if shared_data:
     st.title(f"📝 Бриф: {shared_data['type']}")
     st.markdown(f"Заполните бриф для **{shared_data['name']}**.")
-    client_input = st.text_area("Опишите задачу своими словами:", height=200)
+    client_input = st.text_area("Опишите задачу своими словами:", height=200, placeholder="Например: Нужен лендинг, цвета зеленые, форма в Telegram, бюджет 30к.")
     st.markdown("---")
-    user_code = st.text_input("Код доступа", key="pro_code")
+    user_code = st.text_input("Код доступа (если есть)", key="pro_code")
     is_pro = (user_code.strip().upper() == SECRET_PRO_CODE)
     
     if st.button("🚀 Сгенерировать ТЗ"):
@@ -67,5 +74,5 @@ else:
     if st.button("🔗 Сгенерировать ссылку"):
         share_code = encode_data(my_name, project_type)
         share_url = f"{APP_URL}/?share={share_code}"
-        st.success("Ссылка готова!")
+        st.success("Ссылка готова! Скопируйте её целиком.")
         st.code(share_url, language="text")
