@@ -17,14 +17,12 @@ def encode_data(name, project_type):
 
 def decode_data(encoded_str):
     try:
-        # Добавляем паддинг, если ссылка обрезалась мессенджером
         encoded_str += "=" * ((4 - len(encoded_str) % 4) % 4)
         data = base64.urlsafe_b64decode(encoded_str.encode('utf-8')).decode('utf-8')
         return json.loads(data)
     except Exception:
         return None
 
-# Пуленепробиваемое чтение параметров ссылки
 params = st.query_params
 share_code = params.get("share", "")
 if isinstance(share_code, list):
@@ -46,9 +44,11 @@ if shared_data:
         else:
             with st.spinner("AI структурирует требования..."):
                 prompt = f"Ты — опытный Project Manager. Преврати этот сырой текст в профессиональное ТЗ. Текст: '{client_input}'. Формат: Цель, Требования, Стек, Сроки/бюджет, Уточняющие вопросы. Только Markdown."
+                
+                # ИСПРАВЛЕНИЕ: самая стабильная модель Groq
                 response = client.chat.completions.create(
                     messages=[{"role": "user", "content": prompt}],
-                    model="llama-3.1-70b-versatile",
+                    model="llama3-70b-8192", 
                     temperature=0.2
                 )
                 tz_text = response.choices[0].message.content
